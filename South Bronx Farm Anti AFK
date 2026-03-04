@@ -1,56 +1,38 @@
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
-local coreGui = game:GetService("CoreGui")
+local playerGui = player:WaitForChild("PlayerGui")
 
--- GUI CoreGui anti-reset
+-- GUI simple en PlayerGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AntiAFK_Bronx_Pro"
+screenGui.Name = "AntiAFK_Bronx_Lite"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = coreGui
+screenGui.Parent = playerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 85)
-frame.Position = UDim2.new(1, -250, 0, 20)
+frame.Size = UDim2.new(0, 220, 0, 70)
+frame.Position = UDim2.new(1, -230, 0, 20)
 frame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0, 16)
+uicorner.CornerRadius = UDim.new(0, 12)
 uicorner.Parent = frame
 
-local uistroke = Instance.new("UIStroke")
-uistroke.Color = Color3.fromRGB(100, 150, 255)
-uistroke.Thickness = 2.5
-uistroke.Transparency = 0.3
-uistroke.Parent = frame
-
-local gradient = Instance.new("UIGradient")
-gradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 30))
-}
-gradient.Rotation = 135
-gradient.Parent = frame
-
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -20, 0, 22)
+title.Size = UDim2.new(1, -20, 0, 25)
 title.Position = UDim2.new(0, 10, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "🛡️ Anti-AFK Bronx Pro"
+title.Text = "🛡️ Anti-AFK Lite"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
 title.Font = Enum.Font.GothamBold
 title.Parent = frame
 
 local timerLabel = Instance.new("TextLabel")
-timerLabel.Size = UDim2.new(1, -20, 0, 20)
-timerLabel.Position = UDim2.new(0, 10, 0, 27)
+timerLabel.Size = UDim2.new(1, -20, 0, 25)
+timerLabel.Position = UDim2.new(0, 10, 0, 30)
 timerLabel.BackgroundTransparency = 1
 timerLabel.Text = "00:00:00"
 timerLabel.TextColor3 = Color3.fromRGB(150, 220, 255)
@@ -58,31 +40,11 @@ timerLabel.TextScaled = true
 timerLabel.Font = Enum.Font.GothamSemibold
 timerLabel.Parent = frame
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -20, 0, 18)
-statusLabel.Position = UDim2.new(0, 10, 0, 47)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Status: Protegido"
-statusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
-statusLabel.TextScaled = true
-statusLabel.Font = Enum.Font.Gotham
-statusLabel.Parent = frame
-
-local farmStatus = Instance.new("TextLabel")
-farmStatus.Size = UDim2.new(1, -20, 0, 16)
-farmStatus.Position = UDim2.new(0, 10, 0, 65)
-farmStatus.BackgroundTransparency = 1
-farmStatus.Text = "Farm: Activo"
-farmStatus.TextColor3 = Color3.fromRGB(200, 255, 200)
-farmStatus.TextScaled = true
-farmStatus.Font = Enum.Font.Gotham
-farmStatus.Parent = frame
-
--- Uptime timer
+-- Timer uptime
 local startTime = tick()
 spawn(function()
     while screenGui.Parent do
-        wait(0.5)
+        wait(1)  -- Cada segundo pa' no laggear
         local elapsed = tick() - startTime
         local h = math.floor(elapsed / 3600)
         local m = math.floor((elapsed % 3600) / 60)
@@ -91,64 +53,20 @@ spawn(function()
     end
 end)
 
--- Detector farm parado (si char no mueve >5min, walk invisible)
-local lastPos = Vector3.new(0,0,0)
-local idleStart = tick()
-local char = player.CharacterAdded:Wait():WaitForChild("HumanoidRootPart")
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar:WaitForChild("HumanoidRootPart")
-end)
-spawn(function()
-    while true
-        wait(5)  -- Chequeo cada 5s
-        if char and char.Parent then
-            local currPos = char.Position
-            if (currPos - lastPos).Magnitude < 1 then  -- No movió >1 stud
-                local idleTime = tick() - idleStart
-                if idleTime > 300 then  -- >5 min parado
-                    farmStatus.Text = "Farm: Parado - Fix"
-                    farmStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
-                    -- Walk invisible (solo tiembla 1px)
-                    char.CFrame = char.CFrame + Vector3.new(math.random(-1,1)/10, 0, math.random(-1,1)/10)
-                    wait(0.1)
-                    idleStart = tick()
-                end
-            else
-                lastPos = currPos
-                idleStart = tick()
-                farmStatus.Text = "Farm: Activo"
-                farmStatus.TextColor3 = Color3.fromRGB(200, 255, 200)
-            end
-        end
-    end
-end)
-
--- Anti-Kick Roblox (principal)
-local blockCount = 0
+-- Bloqueo kick principal (Idled)
 player.Idled:Connect(function()
-    blockCount = blockCount + 1
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
-    
-    -- Flash épico
-    statusLabel.Text = "¡Kick #" .. blockCount .. " Bloqueado!"
-    statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    TweenService:Create(frame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {BackgroundColor3 = Color3.fromRGB(60, 15, 15)}):Play()
-    TweenService:Create(uistroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 100, 100)}):Play()
-    wait(0.3)
-    TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Back), {BackgroundColor3 = Color3.fromRGB(15, 15, 30)}):Play()
-    TweenService:Create(uistroke, TweenInfo.new(0.4), {Color = Color3.fromRGB(100, 150, 255)}):Play()
-    wait(2)
-    statusLabel.Text = "Status: Protegido"
-    statusLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+    print("¡Kick bloqueado! Sigue AFK tranqui 🔥")
+    -- Opcional: cambia status si quieres, pero sin flash pa' evitar crash
 end)
 
--- Toggle Insert
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Insert then
-        screenGui.Enabled = not screenGui.Enabled
+spawn(function()
+    while true do
+        wait(600)  -- cada 10 min
+        game.Players.LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        print("Jump backup cada 10 min pa' extra seguridad")
     end
 end)
 
-print("🛡️ Anti-AFK Bronx Pro cargado | Insert pa' toggle | Olvídate tranqui 🔥")
+print("🛡️ Anti-AFK Bronx Lite cargado! Cuadro arriba derecha + timer subiendo. Olvídate del kick forever 🇩🇴")
